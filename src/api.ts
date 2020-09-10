@@ -4,9 +4,10 @@ import Fs from 'fs-extra';
 import FormData from 'form-data';
 import qs from 'querystring';
 import Iconv from 'iconv-lite';
+import CCacheMan from './cacheman';
 
 const API_URL = 'https://www.ystu.ru';
-const COOKIES_PATH = './temp/cookies.data';
+const COOKIES_FILE = 'cookies';
 
 export default class API {
     private login: string;
@@ -23,17 +24,15 @@ export default class API {
      * Init
      */
     public async Init() {
-        let te = this._PHPSESSID;
-        if (!this._PHPSESSID && Fs.existsSync(COOKIES_PATH)) {
-            try {
-                let str = await Fs.readFile(COOKIES_PATH, 'utf8');
-                te = str;
-                let { cookies } = JSON.parse(str);
-                te = cookies;
+        const cm = new CCacheMan();
+        if (!this._PHPSESSID) {
+            let res = await cm.read(COOKIES_FILE);
+            if (res) {
+                let { cookies } = res;
                 if (cookies.PHPSESSID) {
                     this._PHPSESSID = cookies.PHPSESSID;
                 }
-            } catch (error) {}
+            }
         }
 
 
@@ -47,7 +46,7 @@ export default class API {
             }
         }
 
-        await Fs.writeFile(COOKIES_PATH, JSON.stringify({ cookies: { PHPSESSID: this._PHPSESSID } }));
+        await cm.update(COOKIES_FILE, { cookies: { PHPSESSID: this._PHPSESSID } });
     }
 
     private UpdateCookie(response) {

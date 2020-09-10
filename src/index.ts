@@ -1,13 +1,16 @@
-import Fs from 'fs-extra';
 import { load } from 'cheerio';
 import { parseWeekByCheerio, splitToWeeks } from './parser';
 import API from './api';
+import CCacheMan from './cacheman';
+
 require('dotenv').config();
 
 const api = new API({
     login: process.env.LOGIN,
     password: process.env.PASSWORD,
 });
+
+const cm = new CCacheMan();
 
 (async () => {
     await api.Init();
@@ -19,16 +22,12 @@ const api = new API({
     let { data: data2 } = await api.go(linkToFullList);
     let FSLinks = getFSLinks(data2);
 
-    console.log(FSLinks[3]['links'][42]);
+    // console.log(FSLinks[3]['links'][42]);
 
     let { data: data3 } = await api.go(FSLinks[3].links[42].link);
     loadTT(data3);
 })();
 
-/* (async () => {
-    let { data } = await api.go('/WPROG/rasp/raspz.php?raspz=5939891598&idgr=13412204489&lek=0');
-    loadTT(data);
-})(); */
 
 const getHrefToFullList = (html) => {
     const $ = load(html);
@@ -75,6 +74,6 @@ const loadTT = async (tableHTML) => {
     let { days: allDays } = parseWeekByCheerio($);
     let out2 = splitToWeeks(allDays);
 
-    await Fs.writeFile('./temp/out.data', JSON.stringify(allDays, null, 2));
-    await Fs.writeFile('./temp/out2.data', JSON.stringify(out2, null, 2));
+    await cm.update('out', allDays);
+    await cm.update('out2', out2);
 };
