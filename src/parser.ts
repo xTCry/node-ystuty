@@ -1,5 +1,4 @@
 import chTableParser from 'cheerio-tableparser';
-import moment from 'moment';
 
 export enum EWeekParity {
     CUSTOM = 0,
@@ -27,7 +26,7 @@ export enum EWeek {
  * Mixed Days with lessons from one all weeks
  */
 export interface IMDay {
-    week: IWeek;
+    info: IWeekDay;
     lessons: ILesson[];
 }
 
@@ -35,19 +34,18 @@ export interface IMDay {
  * Filtered Days with lessons from one week
  */
 export interface IDay {
-    week: IWeek;
-    date?: Date;
-    dateStr?: string;
+    info: IWeekDay;
     lessons: ILesson[];
 }
 
-export interface IWeek {
+export interface IWeekDay {
     name: string;
-    number?: number;
-    day?: number;
     type?: EWeek;
+    date?: Date;
+    dateStr?: string;
+    weekNumber?: number;
+    parity?: EWeekParity;
 }
-
 
 export interface ILesson {
     number: number;
@@ -104,14 +102,14 @@ export const parseWeekDayString = (str: string) => {
 
     // Извращение
     let regWeekVariants = [
-        /([ёА-я \-:.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3}))? ?(4ч)? ?(лаб\.|лек\.|пр\.з\.?)?(\*)? ?(по п\/г)? ?([а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
-        /([ёА-я \-:.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3}))? ?(лаб\.|лек\.|пр\.з\.?)?(\*)? ?(4ч)? ?(по п\/г)? ?([а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
+        /([ёА-я \-:.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3}))? ?(4ч)? ?(лаб\.|лек\.|пр\.з\.?)?(\*)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
+        /([ёА-я \-:.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3}))? ?(лаб\.|лек\.|пр\.з\.?)?(\*)? ?(4ч)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
 
-        /([ёА-я \-:.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3}))? ?(4ч)? ?(лаб\.|лек\.|пр\.з\.?)(\*)? ?(по п\/г)? ?([а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
-        /([ёА-я \-:.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3}))? ?(лаб\.|лек\.|пр\.з\.?)(\*)? ?(4ч)? ?(по п\/г)? ?([а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
+        /([ёА-я \-:.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3}))? ?(4ч)? ?(лаб\.|лек\.|пр\.з\.?)(\*)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
+        /([ёА-я \-:.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3}))? ?(лаб\.|лек\.|пр\.з\.?)(\*)? ?(4ч)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
 
-        /([ёА-я \-:.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3})) ?(4ч)? ?(лаб\.|лек\.|пр\.з\.?)?(\*)? ?(по п\/г)? ?([а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
-        /([ёА-я \-:.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3})) ?(лаб\.|лек\.|пр\.з\.?)?(\*)? ?(4ч)? ?(по п\/г)? ?([а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
+        /([ёА-я \-:.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3})) ?(4ч)? ?(лаб\.|лек\.|пр\.з\.?)?(\*)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
+        /([ёА-я \-:.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3})) ?(лаб\.|лек\.|пр\.з\.?)?(\*)? ?(4ч)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
 
         // /([ёА-я \-:.()]+)(\*)?(()) ?(4ч)? ?(лаб\.|пр\.з\.)? ?(по п\/г)? ?([а-я]-[0-9]{0,3})? ?([ёА-я \-.])(.+)?/i,
     ];
@@ -146,7 +144,8 @@ export const parseWeekDayString = (str: string) => {
     let _type = [0, 2, 4].includes(regWeekSecondIndex) ? _OR_1_type : _OR_1_double;
     let _z = [0, 2, 4].includes(regWeekSecondIndex) ? _OR_1_z : _OR_1_type;
 
-    const parity: EWeekParity = _parity === 'н' ? EWeekParity.ODD : _parity === 'ч' ? EWeekParity.EVEN : EWeekParity.CUSTOM;
+    const parity: EWeekParity =
+        _parity === 'н' ? EWeekParity.ODD : _parity === 'ч' ? EWeekParity.EVEN : EWeekParity.CUSTOM;
     const range = _range ? parseRange(_range) : [];
     const lessonName = _lessonName ? _lessonName.trim() : null;
     const isStar = !!_z;
@@ -175,9 +174,15 @@ export const parseWeekDayString = (str: string) => {
 export const parseWeekDay = ({ times, names }: { times: any[]; names: any[] }) => {
     const regTime = /([0-9])\. ([0-9:]{4,5})-(?:([0-9:]{4,5})?([.]{3}4ч)?)/i;
 
-    let weekName = names.shift();
+    let weekDayName = names.shift();
     times.shift();
-    let day: IMDay = { week: { name: weekName, type: getWeekTypeByStr(weekName) }, lessons: [] };
+    let day: IMDay = {
+        info: {
+            name: weekDayName,
+            type: getWeekDayTypeByName(weekDayName),
+        },
+        lessons: [],
+    };
 
     let lastGoodDay = null;
     for (const i in names) {
@@ -245,16 +250,21 @@ export const splitLessonsDayByWeekNumber = (allDays: IMDay[], weekNumber: number
             return false;
         }
         day.lessons = lessons;
-        day.date = new Date();
+        day.info = {
+            ...day.info,
+            date: new Date(),
+            parity: (weekNumber % 2 === 0 ? EWeekParity.EVEN : EWeekParity.ODD),
+            weekNumber,
+        };
+
         return true;
     });
 };
 
-const getDateByWeek = (week, day = 0, year = new Date().getFullYear()) =>
-    moment().day('Monday').year(year).week(week).days(day).toDate();
-    // new Date(year, 0, 2 + day + (week - 1) * 7 - new Date(year, 0, 1).getDay(), 10);
+const getDateByWeek = (week: number, day: number = 0, year = new Date().getFullYear()) =>
+    new Date(year, 0, 2 + day + (week - 1) * 7 - new Date(year, 0, 1).getDay());
 
-const getWeekTypeByStr = (str: string) => {
+const getWeekDayTypeByName = (str: string) => {
     str = str.toLocaleLowerCase();
     return str.startsWith('пон')
         ? EWeek.Monday
@@ -272,16 +282,18 @@ const getWeekTypeByStr = (str: string) => {
 };
 
 const setDaysDate = (allDays: IDay[], weekNumber: number, offsetWeek: number = 0) =>
-    allDays.forEach((day) => {
-        day.date = getDateByWeek(weekNumber + offsetWeek, day.week.type);
-        day.dateStr = moment(day.date)/*  */.locale('ru')/*  */.format('L');
+    allDays.forEach(({ info }) => {
+        info.date = getDateByWeek(weekNumber + offsetWeek, info.type);
+        info.dateStr = `${info.date.getDate().toString().padStart(2, '0')}.${(info.date.getMonth() + 1)
+            .toString()
+            .padStart(2, '0')}.${info.date.getFullYear()}`;
     });
 
-const getWeekNumber = (date)=> {
+const getWeekNumber = (date) => {
     let now = new Date(date);
     let onejan = new Date(now.getFullYear(), 0, 1);
     return Math.ceil(((now.getTime() - onejan.getTime()) / 86400000 + onejan.getDay() + 1) / 7);
-}
+};
 
 export const splitToWeeks = (allDays: IMDay[]) => {
     let weeks = [];
@@ -289,22 +301,15 @@ export const splitToWeeks = (allDays: IMDay[]) => {
     let maxWeek = getMaxWeekNumber(allDays);
     let offsetWeek = getWeekNumber('2020.09.01') - 1;
 
-    for (let i = minWeek; i < maxWeek; ++i) {
+    for (let i = minWeek; i < maxWeek + 1; ++i) {
         let days = splitLessonsDayByWeekNumber(allDays, i);
         setDaysDate(days, i, offsetWeek);
-        // days.forEach((day) => day.lessons.forEach((l) => delete l.range));
 
         weeks.push({
             number: i,
-            days
-        })
+            days,
+        });
     }
 
     return weeks;
-};
-
-export const splitToMonths = (days: IMDay[]) => {
-    let months = [];
-
-    return months;
 };

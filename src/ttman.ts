@@ -24,6 +24,7 @@ export class CTimeTableManager {
 
         if (data2) {
             this.FSLinks = this.getFSLinks(data2);
+            await cm.update('FSLinks', this.FSLinks);
         } else {
             console.error('Failed load FS Links');
         }
@@ -51,12 +52,20 @@ export class CTimeTableManager {
             return null;
         }
 
-        let { data } = await this.api.goc(dataLink.link);
-        let tt = await this.convertTT(data);
-        await this.setCache(name, tt);
+        let { data: data1 } = await this.api.goc(dataLink.link);
+        let tt1 = await this.convertTT(data1);
+        let tt2 = [];
+
+        if(dataLink.linkLecture) {
+            let { data: data2 } = await this.api.goc(dataLink.linkLecture);
+            tt2 = await this.convertTT(data2);
+        }
+
+        let data = [...tt2, ...tt1];
+        await this.setCache(name, data);
         return {
             isCache: false,
-            data: tt,
+            data,
         };
     }
 
@@ -100,15 +109,33 @@ export class CTimeTableManager {
                 let title = $(
                     `body > div.WidthLimiter > div.Content > div.RightContentColumn > div > div > div.hidetext > table > tbody > tr:nth-child(${index})`
                 ).text();
-                let cententHTML = $(
+                let contentHTML = $(
                     `body > div.WidthLimiter > div.Content > div.RightContentColumn > div > div > div.hidetext > table > tbody > tr:nth-child(${
                         index + 1
                     }) > td:nth-child(2) > a`
                 );
+                let contentLectureHTML = $(
+                    `body > div.WidthLimiter > div.Content > div.RightContentColumn > div > div > div.hidetext > table > tbody > tr:nth-child(${
+                        index + 1
+                    }) > td:nth-child(2) > div > a`
+                );
 
-                let links = cententHTML.toArray().map((el) => {
+                let lectureLinks = contentLectureHTML.toArray().map((el) => {
                     let el2 = $(el);
-                    return { title: el2.text(), link: '/WPROG/rasp/' + el2.attr('href') };
+                    return {
+                        title: el2.text(),
+                        link: '/WPROG/rasp/' + el2.attr('href'),
+                    };
+                });
+                let links = contentHTML.toArray().map((el) => {
+                    let el2 = $(el);
+                    let title = el2.text()
+                    return {
+                        title,
+                        link: '/WPROG/rasp/' + el2.attr('href'),
+                        linkLecture: (lectureLinks.find((l) => l.title.substr(0, l.title.length - 3) === title) || {})
+                            .link,
+                    };
                 });
 
                 arr.push({
