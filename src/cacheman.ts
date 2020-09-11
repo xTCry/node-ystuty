@@ -1,25 +1,59 @@
 import Fs from 'fs-extra';
 import md5 from 'md5';
 
-export default class CCacheMan {
+export class CCacheMan {
     path: string = './temp/';
-    constructor() {}
+    cache: any = {};
+
+    constructor(path?: string) {
+        if (path) {
+            this.path = path;
+        }
+        Fs.mkdirp(this.path).then();
+    }
 
     public async create(file: string, data: any) {
         return this.update(file, data);
     }
 
-    public async update(file: string, data: any) {
+    public async update(file: string, data: any, timed: number = 36e5) {
+        // console.log('\n\n-----', file, data);
+
         let path = this.getPath(file);
+        let name = this.genName(file);
 
         let wrd = {
             time: this.time,
+            timed,
             data,
+            source: file,
         };
+
+        this.cache[name] = wrd;
         await Fs.writeFile(path, JSON.stringify(wrd, null, 2));
     }
 
     public async read(file: string) {
+        let _data = await this._read(file);
+        if (_data === null) {
+            return null;
+        }
+
+        try {
+            let { data, time } = _data;
+            return data;
+        } catch (error) {
+            console.error(error);
+            return null;
+        }
+    }
+
+    public async _read(file: string, forceFile: boolean = false) {
+        let name = this.genName(file);
+        if (!forceFile && this.cache[name]) {
+            return this.cache[name];
+        }
+
         let path = this.getPath(file);
         if (!Fs.existsSync(path)) {
             return null;
@@ -27,12 +61,33 @@ export default class CCacheMan {
 
         let str = await Fs.readFile(path, 'utf8');
         try {
-            let { data, time } = JSON.parse(str);
-            return data;
+            return JSON.parse(str);
         } catch (error) {
             console.error(error);
             return null;
         }
+    }
+
+    public isset(file: string, forceFile: boolean = false) {
+        let path = this.getPath(file);
+        let name = this.genName(file);
+        if (!forceFile && this.cache[name]) {
+            return true;
+        }
+        return Fs.existsSync(path);
+    }
+
+    /**
+     * Is cache file timeout
+     */
+    public async isTimed(file: string) {
+        let _data = await this._read(file);
+        if (_data === null) {
+            return null;
+        }
+        let { time, timed } = _data;
+
+        return this.time - (time || 0) > timed;
     }
 
     public getPath(file: string) {
@@ -47,3 +102,6 @@ export default class CCacheMan {
         return (Date.now() / 1e3) | 0;
     }
 }
+
+const cm = new CCacheMan();
+export default cm;

@@ -1,10 +1,8 @@
 import axios from 'axios';
-// import https from 'https';
-import Fs from 'fs-extra';
-import FormData from 'form-data';
+import md5 from 'md5';
 import qs from 'querystring';
 import Iconv from 'iconv-lite';
-import CCacheMan from './cacheman';
+import cm from './cacheman';
 
 const API_URL = 'https://www.ystu.ru';
 const COOKIES_FILE = 'cookies';
@@ -24,7 +22,6 @@ export default class API {
      * Init
      */
     public async Init() {
-        const cm = new CCacheMan();
         if (!this._PHPSESSID) {
             let res = await cm.read(COOKIES_FILE);
             if (res) {
@@ -76,7 +73,10 @@ export default class API {
         return isAuth;
     }
 
-    public async go(url, method = 'GET', postData = {}, axiosData: any = {}, useFormData = false) {
+    /**
+     * GO with cache
+     */
+    public async goc(url, method = 'GET', postData = {}, axiosData: any = {}) {
         method = method.toUpperCase();
 
         if ((null === axiosData.data || void 0 === axiosData.data) && 'GET' !== method) {
@@ -85,24 +85,50 @@ export default class API {
 
         if (!axiosData.headers) axiosData.headers = {};
 
-        if ('GET' !== method && useFormData) {
-            let s = new FormData();
-
-            Object.keys(postData).forEach(function (e) {
-                let t = postData[e];
-                Array.isArray(t)
-                    ? t.forEach(function (t) {
-                          s.append(e, t);
-                      })
-                    : s.append(e, t);
-            });
-
-            axiosData.data = s;
+        if ('GET' !== method) {
+            axiosData.data = qs.stringify(postData);
             Object.assign(axiosData.headers, {
-                // 'Content-Type': 'multipart/form-data',
                 'Content-Type': 'application/x-www-form-urlencoded',
             });
-        } else if ('GET' !== method) {
+        }
+
+        if (this._PHPSESSID) {
+            if (axiosData.headers['Cookie']) {
+                axiosData.headers['Cookie'] += `; PHPSESSID=${this._PHPSESSID};`;
+            } else {
+                axiosData.headers['Cookie'] = `PHPSESSID=${this._PHPSESSID};`;
+            }
+        }
+
+        axiosData.params = 'GET' === method ? postData : {};
+        axiosData.responseType = 'arraybuffer';
+
+        let file = `${url}_${method}_${md5(axiosData)}`;
+        let isTimed = await cm.isTimed(file);
+
+        if (isTimed === false) {
+            let { data } = await cm.read(file);
+            return {
+                isCache: true,
+                data,
+            };
+        }
+
+        let response = await this.go(url, method, postData, axiosData);
+        await cm.update(file, { data: response.data });
+        return response;
+    }
+
+    public async go(url, method = 'GET', postData = {}, axiosData: any = {}) {
+        method = method.toUpperCase();
+
+        if ((null === axiosData.data || void 0 === axiosData.data) && 'GET' !== method) {
+            axiosData.data = postData;
+        }
+
+        if (!axiosData.headers) axiosData.headers = {};
+
+        if ('GET' !== method) {
             axiosData.data = qs.stringify(postData);
             Object.assign(axiosData.headers, {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -121,8 +147,8 @@ export default class API {
         axiosData.responseType = 'arraybuffer';
 
         try {
-            const e_1 = await this.Xt(`${API_URL}${url}`, method, axiosData);
-            return e_1;
+            const response = await this.Xt(`${API_URL}${url}`, method, axiosData);
+            return response;
         } catch (e_2) {
             console.error(e_2);
             return e_2;
@@ -130,12 +156,10 @@ export default class API {
     }
 
     public Xt(url, method, data) {
-        // const httpsAgent = new https.Agent({ keepAlive: true });
         return axios({
             ...data,
             method,
             url,
-            // httpsAgent,
         }).then((response) => {
             let data = Iconv.decode(response.data, 'windows-1251');
             this.UpdateCookie(response);
