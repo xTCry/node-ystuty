@@ -57,7 +57,7 @@ export interface ILesson {
     lessonName: string;
     type?: ELessonType;
     isStar: boolean;
-    isDouble: boolean;
+    duration: number;
     isDivision: boolean;
     auditoryName?: string;
     teacherName?: string;
@@ -102,14 +102,14 @@ export const parseWeekDayString = (str: string) => {
 
     // Извращение
     let regWeekVariants = [
-        /([ёА-я \-:.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3}))? ?(4ч)? ?(лаб\.|лек\.|пр\.з\.?)?(\*)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
-        /([ёА-я \-:.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3}))? ?(лаб\.|лек\.|пр\.з\.?)?(\*)? ?(4ч)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
+        /([A-zёА-я \-:,.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3}))? ?(?:([0-9]+)ч)? ?(лаб\.|лек\.|пр\.з\.?)?(\*)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
+        /([A-zёА-я \-:,.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3}))? ?(лаб\.|лек\.|пр\.з\.?)?(\*)? ?(?:([0-9]+)ч)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
 
-        /([ёА-я \-:.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3}))? ?(4ч)? ?(лаб\.|лек\.|пр\.з\.?)(\*)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
-        /([ёА-я \-:.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3}))? ?(лаб\.|лек\.|пр\.з\.?)(\*)? ?(4ч)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
+        /([A-zёА-я \-:,.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3}))? ?(?:([0-9]+)ч)? ?(лаб\.|лек\.|пр\.з\.?)(\*)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
+        /([A-zёА-я \-:,.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3}))? ?(лаб\.|лек\.|пр\.з\.?)(\*)? ?(?:([0-9]+)ч)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
 
-        /([ёА-я \-:.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3})) ?(4ч)? ?(лаб\.|лек\.|пр\.з\.?)?(\*)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
-        /([ёА-я \-:.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3})) ?(лаб\.|лек\.|пр\.з\.?)?(\*)? ?(4ч)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
+        /([A-zёА-я \-:,.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3})) ?(?:([0-9]+)ч)? ?(лаб\.|лек\.|пр\.з\.?)?(\*)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
+        /([A-zёА-я \-:,.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3})) ?(лаб\.|лек\.|пр\.з\.?)?(\*)? ?(?:([0-9]+)ч)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
 
         // /([ёА-я \-:.()]+)(\*)?(()) ?(4ч)? ?(лаб\.|пр\.з\.)? ?(по п\/г)? ?([а-я]-[0-9]{0,3})? ?([ёА-я \-.])(.+)?/i,
     ];
@@ -131,7 +131,7 @@ export const parseWeekDayString = (str: string) => {
         _sub,
         _sub_week_range,
         _sub_audit,
-        _OR_1_double,
+        _OR_1_duration,
         _OR_1_type,
         _OR_1_z,
         _delim,
@@ -140,8 +140,8 @@ export const parseWeekDayString = (str: string) => {
         _other,
     ] = isSkipSecond ? [] : all.match(regWeekSecond);
 
-    let _double = [0, 2, 4].includes(regWeekSecondIndex) ? _OR_1_double : _OR_1_z;
-    let _type = [0, 2, 4].includes(regWeekSecondIndex) ? _OR_1_type : _OR_1_double;
+    let _duration = [0, 2, 4].includes(regWeekSecondIndex) ? _OR_1_duration : _OR_1_z;
+    let _type = [0, 2, 4].includes(regWeekSecondIndex) ? _OR_1_type : _OR_1_duration;
     let _z = [0, 2, 4].includes(regWeekSecondIndex) ? _OR_1_z : _OR_1_type;
 
     const parity: EWeekParity =
@@ -149,7 +149,7 @@ export const parseWeekDayString = (str: string) => {
     const range = _range ? parseRange(_range) : [];
     const lessonName = _lessonName ? _lessonName.trim() : null;
     const isStar = !!_z;
-    const isDouble = !!_double;
+    const duration = parseInt(_duration) || 2;
     const type: ELessonType =
         _type === 'пр.з'
             ? ELessonType.Practical
@@ -168,7 +168,7 @@ export const parseWeekDayString = (str: string) => {
           }
         : null;
 
-    return { parity, range, lessonName, type, isStar, isDouble, isDivision, auditoryName, teacherName, subInfo };
+    return { parity, range, lessonName, type, isStar, duration, isDivision, auditoryName, teacherName, subInfo };
 };
 
 export const parseWeekDay = ({ times, names }: { times: any[]; names: any[] }) => {
