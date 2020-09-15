@@ -1,7 +1,10 @@
 {
     "compilerOptions": {
         "target": "ESNext",
-        "module": "commonjs",
+        "module": "CommonJS",
+        "strict": true,
+        "noEmit": true,
+        "declaration": true,
         "moduleResolution": "node",
         "noUnusedLocals": false,
         "noImplicitReturns": true,
@@ -11,7 +14,10 @@
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
         "resolveJsonModule": true,
-        "outDir": "dist"
+        "outDir": "dist",
+        "typeRoots": [
+            "./src/types/"
+        ]
     },
     "include": [
         "./src/"

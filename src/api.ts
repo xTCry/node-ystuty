@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosRequestConfig, AxiosResponse, Method } from 'axios';
 import md5 from 'md5';
 import qs from 'querystring';
 import Iconv from 'iconv-lite';
@@ -8,12 +8,12 @@ const API_URL = 'https://www.ystu.ru';
 const COOKIES_FILE = 'cookies';
 
 export default class API {
-    private login: string;
-    private password: string;
+    private login?: string;
+    private password?: string;
 
-    private _PHPSESSID: string = null;
+    private _PHPSESSID?: string;
 
-    constructor({ login = undefined, password = undefined }) {
+    constructor({ login, password }: { login?: string; password?: string }) {
         this.login = login;
         this.password = password;
     }
@@ -32,25 +32,24 @@ export default class API {
             }
         }
 
-
         let response = await this.go('/WPROG/lk/lkstud.php');
         let isAuth = !API.IsNeedAuth(response);
+
+        await cm.update(COOKIES_FILE, { cookies: { PHPSESSID: this._PHPSESSID } });
 
         if (!isAuth) {
             let isAuth2 = await this.Auth();
             if (isAuth === isAuth2) {
-                console.error('Failed auth');
+                throw new Error('Failed auth');
             }
         }
-
-        await cm.update(COOKIES_FILE, { cookies: { PHPSESSID: this._PHPSESSID } });
     }
 
-    private UpdateCookie(response) {
+    private UpdateCookie(response: AxiosResponse<any>) {
         if (Array.isArray(response.headers['set-cookie'])) {
             let _PHPSESSID = response.headers['set-cookie'].find((str) => str.includes('PHPSESSID')) as string;
             if (_PHPSESSID) {
-                let [, , PHPSESSID] = _PHPSESSID.match(/(.+)=(.+);/i);
+                const [, , PHPSESSID] = _PHPSESSID.match(/(.+)=(.+);/i)!;
                 if (PHPSESSID) {
                     this._PHPSESSID = PHPSESSID;
                 }
@@ -68,6 +67,12 @@ export default class API {
             password: this.password,
         });
 
+        // if (response.data.toLowerCase().includes('неправильный логин или пароль')) {
+        if (response.data.toLowerCase().includes('<a href="auth.php">')) {
+            throw new Error('Wrong login:password');
+            return false;
+        }
+
         let response2 = await this.go('/WPROG/lk/lkstud.php');
         let isAuth = !API.IsNeedAuth(response2);
         return isAuth;
@@ -76,10 +81,20 @@ export default class API {
     /**
      * GO with cache
      */
-    public async goc(url, method = 'GET', postData = {}, axiosData: any = {}) {
-        method = method.toUpperCase();
+    public async goc(url: string, _method: Method = 'GET', postData: any = {}, axiosData: any = {}): Promise<{
+        data: string;
+        status: number;
+        statusText: string;
+        headers: any;
+        config: AxiosRequestConfig;
+        request?: any;
+    } | {
+        isCache: boolean;
+        data: string;
+    }> {
+        let method = _method.toUpperCase();
 
-        if ((null === axiosData.data || void 0 === axiosData.data) && 'GET' !== method) {
+        if ((null === axiosData.data || undefined === axiosData.data) && 'GET' !== method) {
             axiosData.data = postData;
         }
 
@@ -101,7 +116,6 @@ export default class API {
         }
 
         axiosData.params = 'GET' === method ? postData : {};
-        axiosData.responseType = 'arraybuffer';
 
         let file = `${url}_${method}_${md5(axiosData)}`;
         let isTimed = await cm.isTimed(file);
@@ -114,13 +128,20 @@ export default class API {
             };
         }
 
-        let response = await this.go(url, method, postData, axiosData);
+        let response = await this.go(url, _method, postData, axiosData);
         await cm.update(file, { data: response.data });
         return response;
     }
 
-    public async go(url, method = 'GET', postData = {}, axiosData: any = {}) {
-        method = method.toUpperCase();
+    public async go(url: string, _method: Method = 'GET', postData: any = {}, axiosData: any = {}): Promise<{
+        data: string;
+        status: number;
+        statusText: string;
+        headers: any;
+        config: AxiosRequestConfig;
+        request?: any;
+    }> {
+        let method = _method.toUpperCase();
 
         if ((null === axiosData.data || void 0 === axiosData.data) && 'GET' !== method) {
             axiosData.data = postData;
@@ -144,10 +165,9 @@ export default class API {
         }
 
         axiosData.params = 'GET' === method ? postData : {};
-        axiosData.responseType = 'arraybuffer';
 
         try {
-            const response = await this.Xt(`${API_URL}${url}`, method, axiosData);
+            const response = await this.Xt(`${API_URL}${url}`, _method, axiosData);
             return response;
         } catch (e_2) {
             console.error(e_2);
@@ -155,20 +175,23 @@ export default class API {
         }
     }
 
-    public Xt(url, method, data) {
+    public Xt(url: string, method: Method, data: any) {
         return axios({
             ...data,
+            responseType: 'arraybuffer',
             method,
             url,
         }).then((response) => {
-            let data = Iconv.decode(response.data, 'windows-1251');
+            let data = response.data;
+            data = Iconv.decode(data, 'cp1251');
+
             this.UpdateCookie(response);
 
             return { ...response, data };
         }, Promise.reject);
     }
 
-    public static IsNeedAuth({ request }) {
+    public static IsNeedAuth({ request }: any) {
         return request.path.includes('auth.php') /* || request._redirectable._isRedirect */;
     }
 }

@@ -1,14 +1,25 @@
 import { load } from 'cheerio';
-import { parseWeekByCheerio, splitToWeeks } from './parser';
+import { IWeek, parseWeekByCheerio, splitToWeeks } from './parser';
 import cm from './cacheman';
 import API from './api';
 
+export interface IFacultyLink {
+    title: string;
+    link: string;
+    linkLecture?: string;
+}
+
+export interface ILinks2Facultets {
+    title: string;
+    links: IFacultyLink[];
+}
+
 export class CTimeTableManager {
-    FSLinks: any[] = null;
     api: API;
+    FSLinks?: ILinks2Facultets[];
 
     constructor(api?: API) {
-        this.api = api;
+        this.api = api!;
     }
 
     public async Init(api?: API) {
@@ -18,7 +29,7 @@ export class CTimeTableManager {
 
         // Find all list
         let { data } = await this.api.goc('/WPROG/rasp/raspz.php');
-        let linkToFullList = this.getHrefToFullList(data);
+        let linkToFullList = this.getLinkToFullList(data);
 
         let { data: data2 } = await this.api.goc(linkToFullList);
 
@@ -30,17 +41,17 @@ export class CTimeTableManager {
         }
     }
 
-    public get allGroups() {
+    public get allGroups(): IFacultyLink[] {
         if (!this.FSLinks) {
             return [];
         }
 
-        return this.FSLinks.reduce((a, f) => ([...a, ...f.links]), []);
+        return this.FSLinks.reduce((a: IFacultyLink[], f) => [...a, ...f.links], []);
     }
 
     public async getTTByName(name: string) {
         let cacheData = await this.getCache(name);
-        if (cacheData !== null) {
+        if (cacheData.length) {
             return {
                 isCache: true,
                 data: cacheData,
@@ -54,9 +65,9 @@ export class CTimeTableManager {
 
         let { data: data1 } = await this.api.goc(dataLink.link);
         let tt1 = await this.convertTT(data1);
-        let tt2 = [];
+        let tt2: IWeek[] = [];
 
-        if(dataLink.linkLecture) {
+        if (dataLink.linkLecture) {
             let { data: data2 } = await this.api.goc(dataLink.linkLecture);
             tt2 = await this.convertTT(data2);
         }
@@ -73,7 +84,7 @@ export class CTimeTableManager {
         return await cm.update(`${name}_tt`, data);
     }
 
-    public async getCache(name: string) {
+    public async getCache(name: string): Promise<IWeek[]> {
         let file = `${name}_tt`;
         let isTimed = await cm.isTimed(file);
 
@@ -81,22 +92,22 @@ export class CTimeTableManager {
             return await cm.read(file);
         }
 
-        return null;
+        return [];
     }
 
     public getDataLinkByName(name: string) {
         if (!this.FSLinks) {
-            return null;
+            return undefined;
         }
         return this.allGroups.find((e) => e.title.toLowerCase() === name.toLowerCase());
     }
 
-    public getHrefToFullList(html) {
+    public getLinkToFullList(html: string) {
         const $ = load(html);
         return '/WPROG/rasp/' + $('#tab1 > tbody > tr:nth-child(1) > td:nth-child(1) > a').attr('href');
     }
 
-    public getFSLinks(html) {
+    public getFSLinks(html: string) {
         const $ = load(html);
         let arr = [];
 
@@ -129,7 +140,7 @@ export class CTimeTableManager {
                 });
                 let links = contentHTML.toArray().map((el) => {
                     let el2 = $(el);
-                    let title = el2.text()
+                    let title = el2.text();
                     return {
                         title,
                         link: '/WPROG/rasp/' + el2.attr('href'),
@@ -148,7 +159,7 @@ export class CTimeTableManager {
         return arr;
     }
 
-    public async convertTT(tableHTML) {
+    public async convertTT(tableHTML: string) {
         const $ = load(tableHTML);
 
         let { days: allDays } = parseWeekByCheerio($);

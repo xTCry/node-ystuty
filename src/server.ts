@@ -2,7 +2,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import TTMan from './ttman';
 
-const WEB_PORT = process.env.PORT || 18463;
+const WEB_PORT = process.env.PORT || 8085;
 export const app = express();
 
 app.disable('x-powered-by');
@@ -22,7 +22,7 @@ app.get('/api/', async (req, res) => {
 
 app.get('/api/list/all', async (req, res, next) => {
     try {
-        let response = {};
+        let response: any = {};
         response['type'] = 'allGroups';
         response['data'] = TTMan.allGroups;
 
@@ -35,9 +35,9 @@ app.get('/api/list/all', async (req, res, next) => {
 app.get('/api/list/:f', async (req, res, next) => {
     try {
         let { f } = req.params;
-        let response = {};
+        let response: any = {};
         response['type'] = 'fs';
-        // response['data'] = await TTMan.getTTByName(g);
+        // response['data'] = await TTMan.getTTByName(f);
 
         res.json({ response });
     } catch (error) {
@@ -50,10 +50,11 @@ app.get('/api/get/:g', async (req, res, next) => {
         let { g } = req.params;
         let dataTT = await TTMan.getTTByName(g);
         if (!dataTT) {
-            throw ('Wrong name');
+            throw new Error('Wrong name');
         }
+
         let { data, isCache } = dataTT;
-        let response = {};
+        let response: any = {};
         response['type'] = 'byName';
         response['isCache'] = isCache;
         response['data'] = data;
@@ -64,13 +65,13 @@ app.get('/api/get/:g', async (req, res, next) => {
     }
 });
 
-app.use((err, req, res, next) => {
+app.use((error: any, req: any, res: any, next: Function) => {
     if (res.headersSent) {
-        return next(err);
+        return next(error);
     }
 
     res.status(500);
-    res.json({ error: err });
+    res.json({ error: error.message });
 });
 
 export const server = app.listen(WEB_PORT, () => {

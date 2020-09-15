@@ -38,6 +38,11 @@ export interface IDay {
     lessons: ILesson[];
 }
 
+export interface IWeek {
+    number: number;
+    days: IDay[];
+}
+
 export interface IWeekDay {
     name: string;
     type?: EWeek;
@@ -54,7 +59,7 @@ export interface ILesson {
 
     parity: EWeekParity;
     range: number[];
-    lessonName: string;
+    lessonName?: string;
     type?: ELessonType;
     isStar: boolean;
     duration: number;
@@ -62,25 +67,24 @@ export interface ILesson {
     auditoryName?: string;
     teacherName?: string;
     subInfo?: {
-        range: any;
-        auditoryName: string;
+        range?: any;
+        auditoryName?: string;
     };
 }
 
-export const parseRange = (str) => {
+export const parseRange = (str: string) => {
     return JSON.parse(
-        '[' +
-            str.replace(/(\d+)-(\d+)/g, (range, start, end) =>
-                Array(end - start + 1)
-                    .fill(+start)
-                    .map((x, i) => x + i)
-            ) +
-            ']'
+        `[${str.replace(/(\d+)-(\d+)/g, (range, start: number, end: number) =>
+            Array(end - start + 1)
+            .fill(+start)
+            .map((x, i) => x + i)
+            .toString()
+        )}]`
     );
 };
 
 export const findOptimalRegExp = (arr: RegExp[], str: string) => {
-    let counter = {};
+    let counter: any = {};
 
     for (const id in arr) {
         const el = arr[id];
@@ -92,9 +96,9 @@ export const findOptimalRegExp = (arr: RegExp[], str: string) => {
         counter[id] = !c ? 0 : c.filter(Boolean).length;
     }
 
-    let find = Object.keys(counter).reduce((a, b) => (counter[a] > counter[b] ? a : b));
+    let find = parseInt(Object.keys(counter).reduce((a, b) => (counter[a] > counter[b] ? a : b)));
 
-    return arr[find].test(str) ? parseInt(find) : undefined;
+    return arr[find].test(str) ? find : undefined;
 };
 
 export const parseWeekDayString = (str: string) => {
@@ -115,14 +119,12 @@ export const parseWeekDayString = (str: string) => {
     ];
 
     if (!regWeekFirst.test(str)) {
-        return null;
+        return undefined;
     }
 
-    let [, _parity, _range, all] = str.match(regWeekFirst);
+    let [, _parity, _range, all] = str.match(regWeekFirst)!;
 
     let regWeekSecondIndex = findOptimalRegExp(regWeekVariants, all);
-    let regWeekSecond = regWeekVariants[regWeekSecondIndex];
-
     let isSkipSecond = !all || regWeekSecondIndex === undefined;
 
     let [
@@ -138,35 +140,35 @@ export const parseWeekDayString = (str: string) => {
         _audit,
         _people,
         _other,
-    ] = isSkipSecond ? [] : all.match(regWeekSecond);
+    ] = isSkipSecond ? [] : all.match(regWeekVariants[regWeekSecondIndex!])!;
 
-    let _duration = [0, 2, 4].includes(regWeekSecondIndex) ? _OR_1_duration : _OR_1_z;
-    let _type = [0, 2, 4].includes(regWeekSecondIndex) ? _OR_1_type : _OR_1_duration;
-    let _z = [0, 2, 4].includes(regWeekSecondIndex) ? _OR_1_z : _OR_1_type;
+    let _duration = [0, 2, 4].includes(regWeekSecondIndex!) ? _OR_1_duration : _OR_1_z;
+    let _type = [0, 2, 4].includes(regWeekSecondIndex!) ? _OR_1_type : _OR_1_duration;
+    let _z = [0, 2, 4].includes(regWeekSecondIndex!) ? _OR_1_z : _OR_1_type;
 
     const parity: EWeekParity =
         _parity === 'н' ? EWeekParity.ODD : _parity === 'ч' ? EWeekParity.EVEN : EWeekParity.CUSTOM;
     const range = _range ? parseRange(_range) : [];
-    const lessonName = _lessonName ? _lessonName.trim() : null;
+    const lessonName = _lessonName ? _lessonName.trim() : undefined;
     const isStar = !!_z;
     const duration = parseInt(_duration) || 2;
-    const type: ELessonType =
+    const type: ELessonType | undefined =
         _type === 'пр.з'
             ? ELessonType.Practical
             : _type === 'лек.'
             ? ELessonType.Lecture
             : _type === 'лаб.'
             ? ELessonType.Labaratory
-            : null;
+            : undefined;
     const isDivision = !!_delim;
-    const auditoryName = _audit ? _audit.trim() : null;
-    const teacherName = _people ? _people.trim() : null;
+    const auditoryName = _audit ? _audit.trim() : undefined;
+    const teacherName = _people ? _people.trim() : undefined;
     const subInfo = _sub
         ? {
               range: parseRange(_sub_week_range),
-              auditoryName: _sub_audit ? _sub_audit.trim() : null,
+              auditoryName: _sub_audit ? _sub_audit.trim() : undefined,
           }
-        : null;
+        : undefined;
 
     return { parity, range, lessonName, type, isStar, duration, isDivision, auditoryName, teacherName, subInfo };
 };
@@ -184,7 +186,7 @@ export const parseWeekDay = ({ times, names }: { times: any[]; names: any[] }) =
         lessons: [],
     };
 
-    let lastGoodDay = null;
+    let lastGoodDay = undefined;
     for (const i in names) {
         let name = names[i];
         if (!name) {
@@ -289,14 +291,14 @@ const setDaysDate = (allDays: IDay[], weekNumber: number, offsetWeek: number = 0
             .padStart(2, '0')}.${info.date.getFullYear()}`;
     });
 
-const getWeekNumber = (date) => {
+const getWeekNumber = (date: string | number | Date) => {
     let now = new Date(date);
     let onejan = new Date(now.getFullYear(), 0, 1);
     return Math.ceil(((now.getTime() - onejan.getTime()) / 86400000 + onejan.getDay() + 1) / 7);
 };
 
-export const splitToWeeks = (allDays: IMDay[]) => {
-    let weeks = [];
+export const splitToWeeks = (allDays: IMDay[]): IWeek[] => {
+    let weeks: IWeek[] = [];
     let minWeek = getMinWeekNumber(allDays);
     let maxWeek = getMaxWeekNumber(allDays);
     let offsetWeek = getWeekNumber('2020.09.01') - 1;

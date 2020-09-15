@@ -10,6 +10,10 @@ const api = new API({
 });
 
 (async () => {
-    await api.Init();
-    await TTMan.Init(api);
+    try {
+        await api.Init();
+        await TTMan.Init(api);
+    } catch (error) {
+        console.log('Error', error.message);
+    }
 })();
