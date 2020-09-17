@@ -7,6 +7,7 @@ export enum EWeekParity {
 }
 
 export enum ELessonType {
+    None = 0,
     Lecture = 1,
     Practical = 2,
     Labaratory = 3,
@@ -60,7 +61,7 @@ export interface ILesson {
     parity: EWeekParity;
     range: number[];
     lessonName?: string;
-    type?: ELessonType;
+    types?: ELessonType[];
     isStar: boolean;
     duration: number;
     isDivision: boolean;
@@ -101,11 +102,57 @@ export const findOptimalRegExp = (arr: RegExp[], str: string) => {
     return arr[find].test(str) ? find : undefined;
 };
 
+const weekRegExpTemplate = ({ subInfo = false, dts = 1, typeQM = true }: { subInfo?: boolean; dts?: 1 | 2; typeQM?: boolean;  } = {}) => {
+    const MBeSpace = (str: string) => `(?: ?${str})`;
+
+    const Delim = `(по п\\/г)`;
+    const Auditory = `(актовый зал|[а-я]{0,2}-[0-9]{0,3}[а-я]{0,2})`;
+
+    const SubInfo = `(на ([,\\-0-9]+)н ${Auditory})`;
+    const SubInfoSkip = '(()())';
+
+    const Duration = `([0-9]+)ч`;
+    const Star = `(\\*)?`;
+
+    // const Types = `(?:(лаб\\.|лек\\.|пр\.з\\.?))${typeQM ? '?' : ''}`;
+    // const Types = `((?:[а-я]{2,3}.[а-я\\.]{0,3})(?:, ?(?:[а-я]{2,3}.[а-я\\.]{0,3}))?)${typeQM ? '?' : ''}`;
+    const SupType = `(?:лекция|лек\\.|лаб\\.|пр\\.з\\.?)`;
+    const Types = `(${SupType}(?:, ${SupType})?(?:, ${SupType})?)${typeQM ? '?' : ''}`;
+
+    /* Duration & Type & Star */
+    const DTS = dts === 1 ? `${MBeSpace(Duration)}?${MBeSpace(Types)}${Star}` : /*  dts === 2 ?  */ `${Types}${Star}${MBeSpace(Duration)}?`;
+
+    const TeacherName = `([ёА-я \\-.]+)`;
+    const Other = `(.+)`;
+
+    return new RegExp(
+        `${MBeSpace(subInfo ? SubInfo : SubInfoSkip)} ?${DTS}` +
+            `${MBeSpace(Delim)}?${MBeSpace(Auditory)}?${MBeSpace(TeacherName)}?${Other}?`,
+        'i'
+    );
+};
+
 export const parseWeekDayString = (str: string) => {
     let regWeekFirst = /(?:(ч|н)\/н )?(?:([,\-0-9]+)н )?(.+)/i;
 
     // Извращение
     let regWeekVariants = [
+        weekRegExpTemplate({ subInfo: false, dts: 1, typeQM: true }),
+        weekRegExpTemplate({ subInfo: false, dts: 2, typeQM: true }),
+
+        weekRegExpTemplate({ subInfo: false, dts: 1, typeQM: false }),
+        weekRegExpTemplate({ subInfo: false, dts: 2, typeQM: false }),
+
+        weekRegExpTemplate({ subInfo: true, dts: 1, typeQM: true }),
+        weekRegExpTemplate({ subInfo: true, dts: 2, typeQM: true }),
+
+        weekRegExpTemplate({ subInfo: true, dts: 1, typeQM: false }),
+        weekRegExpTemplate({ subInfo: true, dts: 2, typeQM: false }),
+
+        // Например, Библиотека
+        /(()())()()?(?:())?()?\(([A-zёА-я \-:,.]+)\) ?(в [0-9\\.]+)?(.+)?/i,
+
+        /*
         /([A-zёА-я \-:,.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3}))? ?(?:([0-9]+)ч)? ?(лаб\.|лек\.|пр\.з\.?)?(\*)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
         /([A-zёА-я \-:,.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3}))? ?(лаб\.|лек\.|пр\.з\.?)?(\*)? ?(?:([0-9]+)ч)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
 
@@ -114,6 +161,7 @@ export const parseWeekDayString = (str: string) => {
 
         /([A-zёА-я \-:,.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3})) ?(?:([0-9]+)ч)? ?(лаб\.|лек\.|пр\.з\.?)?(\*)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
         /([A-zёА-я \-:,.()]+) ?(на ([,\-0-9]+)н ([а-я]{0,2}-[0-9]{0,3})) ?(лаб\.|лек\.|пр\.з\.?)?(\*)? ?(?:([0-9]+)ч)? ?(по п\/г)? ?(актовый зал|[а-я]{0,2}-[0-9]{0,3})? ?([ёА-я \-.]+)?(.+)?/i,
+        */
 
         // /([ёА-я \-:.()]+)(\*)?(()) ?(4ч)? ?(лаб\.|пр\.з\.)? ?(по п\/г)? ?([а-я]-[0-9]{0,3})? ?([ёА-я \-.])(.+)?/i,
     ];
@@ -122,29 +170,38 @@ export const parseWeekDayString = (str: string) => {
         return undefined;
     }
 
-    let [, _parity, _range, all] = str.match(regWeekFirst)!;
+    let [, _parity, _range, nextPayloadString] = str.match(regWeekFirst)!;
 
-    let regWeekSecondIndex = findOptimalRegExp(regWeekVariants, all);
-    let isSkipSecond = !all || regWeekSecondIndex === undefined;
+    let regWeekSecondIndex = findOptimalRegExp(regWeekVariants, nextPayloadString);
+    let isSkipSecond = !nextPayloadString || regWeekSecondIndex === undefined;
 
+    
+    let _lessonName = undefined;
     let [
-        ,
-        _lessonName,
+        _FullString,
+        // _lessonName,
         _sub,
         _sub_week_range,
         _sub_audit,
         _OR_1_duration,
-        _OR_1_type,
+        _OR_1_types,
         _OR_1_z,
         _delim,
         _audit,
         _people,
         _other,
-    ] = isSkipSecond ? [] : all.match(regWeekVariants[regWeekSecondIndex!])!;
+    ] = isSkipSecond ? [] : nextPayloadString.match(regWeekVariants[regWeekSecondIndex!])!;
 
-    let _duration = [0, 2, 4].includes(regWeekSecondIndex!) ? _OR_1_duration : _OR_1_z;
-    let _type = [0, 2, 4].includes(regWeekSecondIndex!) ? _OR_1_type : _OR_1_duration;
-    let _z = [0, 2, 4].includes(regWeekSecondIndex!) ? _OR_1_z : _OR_1_type;
+    if (!isSkipSecond) {
+        let posSub = nextPayloadString.indexOf(_FullString);
+        
+        const LessonNameRegExp = '([A-zёА-я \\-:,.()]+)';
+        _lessonName = nextPayloadString.substr(0, posSub).match(LessonNameRegExp)![0];
+    }
+
+    let _duration = regWeekSecondIndex! % 2 === 0 ? _OR_1_duration : _OR_1_z;
+    let _types = regWeekSecondIndex! % 2 === 0 ? _OR_1_types : _OR_1_duration;
+    let _z = regWeekSecondIndex! % 2 === 0 ? _OR_1_z : _OR_1_types;
 
     const parity: EWeekParity =
         _parity === 'н' ? EWeekParity.ODD : _parity === 'ч' ? EWeekParity.EVEN : EWeekParity.CUSTOM;
@@ -152,14 +209,23 @@ export const parseWeekDayString = (str: string) => {
     const lessonName = _lessonName ? _lessonName.trim() : undefined;
     const isStar = !!_z;
     const duration = parseInt(_duration) || 2;
-    const type: ELessonType | undefined =
-        _type === 'пр.з'
-            ? ELessonType.Practical
-            : _type === 'лек.'
-            ? ELessonType.Lecture
-            : _type === 'лаб.'
-            ? ELessonType.Labaratory
-            : undefined;
+
+    const types: ELessonType[] | undefined = _types
+        ? _types
+              .split(',')
+              .map((e) => e.trim().toLowerCase())
+              .map((type) =>
+                  type.includes('пр.з')
+                      ? ELessonType.Practical
+                      : type.includes('лек')
+                      ? ELessonType.Lecture
+                      : type.includes('лаб')
+                      ? ELessonType.Labaratory
+                      : ELessonType.None
+              )
+              .filter(Boolean)
+        : undefined;
+
     const isDivision = !!_delim;
     const auditoryName = _audit ? _audit.trim() : undefined;
     const teacherName = _people ? _people.trim() : undefined;
@@ -170,7 +236,7 @@ export const parseWeekDayString = (str: string) => {
           }
         : undefined;
 
-    return { parity, range, lessonName, type, isStar, duration, isDivision, auditoryName, teacherName, subInfo };
+    return { parity, range, lessonName, types, isStar, duration, isDivision, auditoryName, teacherName, subInfo };
 };
 
 export const parseWeekDay = ({ times, names }: { times: any[]; names: any[] }) => {
@@ -264,7 +330,7 @@ export const splitLessonsDayByWeekNumber = (allDays: IMDay[], weekNumber: number
 };
 
 const getDateByWeek = (week: number, day: number = 0, year = new Date().getFullYear()) =>
-    new Date(year, 0, 2 + day + (week - 1) * 7 - new Date(year, 0, 1).getDay());
+    new Date(year, 0, 2 + day + (week - 1) * 7 - new Date(year, 0, 1).getDay(), 3);
 
 const getWeekDayTypeByName = (str: string) => {
     str = str.toLocaleLowerCase();

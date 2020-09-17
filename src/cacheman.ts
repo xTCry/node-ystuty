@@ -91,7 +91,7 @@ export class CCacheMan {
     }
 
     public getPath(file: string) {
-        return `${this.path}${this.genName(file)}.data`;
+        return `${this.path}${this.genName(file)}.json`;
     }
 
     public genName(str: string) {

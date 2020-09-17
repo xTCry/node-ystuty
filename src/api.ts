@@ -81,7 +81,7 @@ export default class API {
     /**
      * GO with cache
      */
-    public async goc(url: string, _method: Method = 'GET', postData: any = {}, axiosData: any = {}): Promise<{
+    public async goc(url: string, _method: Method = 'GET', postData: any = {}, axiosData: any = {}, forceReload: boolean = false): Promise<{
         data: string;
         status: number;
         statusText: string;
@@ -120,12 +120,14 @@ export default class API {
         let file = `${url}_${method}_${md5(axiosData)}`;
         let isTimed = await cm.isTimed(file);
 
-        if (isTimed === false) {
+        if (isTimed === false && !forceReload) {
             let { data } = await cm.read(file);
-            return {
-                isCache: true,
-                data,
-            };
+            if (!(data as string).includes('input type="submit" name="login1"')) {
+                return {
+                    isCache: true,
+                    data,
+                };
+            }
         }
 
         let response = await this.go(url, _method, postData, axiosData);

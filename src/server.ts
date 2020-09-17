@@ -47,6 +47,7 @@ app.get('/api/list/:f', async (req, res, next) => {
 
 app.get('/api/get/:g', async (req, res, next) => {
     try {
+        let { s } = req.query;
         let { g } = req.params;
         let dataTT = await TTMan.getTTByName(g);
         if (!dataTT) {
@@ -59,7 +60,11 @@ app.get('/api/get/:g', async (req, res, next) => {
         response['isCache'] = isCache;
         response['data'] = data;
 
-        res.json({ response });
+        if (!s) {
+            res.json({ response });
+        } else {
+            res.send(JSON.stringify(response, null, 2));
+        }
     } catch (error) {
         next(error);
     }
@@ -70,6 +75,8 @@ app.use((error: any, req: any, res: any, next: Function) => {
         return next(error);
     }
 
+    console.error(error);
+    
     res.status(500);
     res.json({ error: error.message });
 });
