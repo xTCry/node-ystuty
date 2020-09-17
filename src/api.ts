@@ -131,6 +131,11 @@ export default class API {
         }
 
         let response = await this.go(url, _method, postData, axiosData);
+        if (response.data.includes('input type="submit" name="login1"')) {
+            let authRes = await this.Auth();
+            console.log('Cache authRes', authRes);
+        }
+
         await cm.update(file, { data: response.data });
         return response;
     }

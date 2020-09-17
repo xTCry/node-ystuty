@@ -64,12 +64,12 @@ export class CTimeTableManager {
         }
 
         let { data: data1 } = await this.api.goc(dataLink.link);
-        let tt1 = await this.convertTT(data1);
+        let tt1 = await this.convertTT(data1, `${name}_sem`);
         let tt2: IWeek[] = [];
 
         if (dataLink.linkLecture) {
             let { data: data2 } = await this.api.goc(dataLink.linkLecture);
-            tt2 = await this.convertTT(data2);
+            tt2 = await this.convertTT(data2, `${name}_lec`);
         }
 
         let data = [...tt2, ...tt1];
@@ -159,11 +159,14 @@ export class CTimeTableManager {
         return arr;
     }
 
-    public async convertTT(tableHTML: string) {
+    public async convertTT(tableHTML: string, name?: string) {
         const $ = load(tableHTML);
 
         let { days: allDays } = parseWeekByCheerio($);
         let out2 = splitToWeeks(allDays);
+        if (name) {
+            await this.setCache(`week_${name}`, allDays);
+        }
 
         return out2;
     }
