@@ -16,7 +16,7 @@ export class CCacheMan {
         return this.update(file, data);
     }
 
-    public async update(file: string, data: any, timed: number = 36e5) {
+    public async update(file: string, data: any, timed: number = 36e4) {
         // console.log('\n\n-----', file, data);
 
         let path = this.getPath(file);

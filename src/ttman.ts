@@ -81,7 +81,7 @@ export class CTimeTableManager {
     }
 
     public async setCache(name: string, data: any) {
-        return await cm.update(`${name}_tt`, data);
+        return await cm.update(`${name}_tt`, data, 86400);
     }
 
     public async getCache(name: string): Promise<IWeek[]> {

@@ -188,7 +188,7 @@ const weekRegExpTemplate = ({
 
     const Delim = `(?<DELIM>по п\\/г)`;
     const Auditory = (str: string = '') =>
-        `(?<${str}AUDITORY>спортивные залы|актовый зал|[а-я]{0,2}-[0-9]{0,3}[а-я]{0,2})`;
+        `(?<${str}AUDITORY>спортивн..? зал.?|актов..? зал.?|[а-я]{0,2}-[0-9]{0,3}[а-я]{0,2}),?`;
 
     const SubInfo = `(?<SUBINFO>на (?<SUBINFO_RANGE>[,\\-0-9]+)н ${Auditory('SUBINFO_')})`;
     const SubInfoSkip = '(?<SUBINFO>(?<SUBINFO_RANGE>)(?<SUBINFO_AUDITORY>))';
