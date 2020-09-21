@@ -17,6 +17,7 @@ export enum ELessonFlags {
     Lecture = 1 << 1,
     Practical = 1 << 2,
     Labaratory = 1 << 3,
+    CourseProject = 1 << 4,
 }
 
 /**
@@ -196,7 +197,7 @@ const weekRegExpTemplate = ({
     const Duration = `(?<DURATION>[0-9]+)ч`;
     const Star = `(?<STAR>\\*)?`;
 
-    const SupType = `(?:лекция|лек\\.|лаб\\.|пр\\.з\\.?)`;
+    const SupType = `(?:лекция|лек\\.|лаб\\.|пр\\.з\\.?|кп\\.?)`;
     const Types = `(?<TYPES>${SupType}(?:, ${SupType})?(?:, ${SupType})?)${typeQM ? '?' : ''}`;
 
     /* Duration & Type & Star */
@@ -281,7 +282,7 @@ export const parseWeekDayString = (str: string) => {
 
     if (!isSkipSecond && _FullString) {
         let posSub = nextPayloadString.indexOf(_FullString);
-        _lessonName = nextPayloadString.substr(0, posSub).match(RegExpLessonName)![0];
+        _lessonName = !posSub ? 'FF' : nextPayloadString.substr(0, posSub).match(RegExpLessonName)![0];
     }
 
     // let _duration = regWeekSecondIndex! % 2 === 0 ? _OR_1_duration : _OR_1_star;
@@ -308,6 +309,8 @@ export const parseWeekDayString = (str: string) => {
                     ? ELessonFlags.Lecture
                     : type.includes('лаб')
                     ? ELessonFlags.Labaratory
+                    : type.includes('кп')
+                    ? ELessonFlags.CourseProject
                     : ELessonFlags.None),
             ELessonFlags.None
         );
