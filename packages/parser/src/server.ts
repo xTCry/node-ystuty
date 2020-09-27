@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Router } from 'express';
 import bodyParser from 'body-parser';
 import TTMan from './ttman';
 
@@ -8,19 +8,20 @@ export const app = express();
 app.disable('x-powered-by');
 app.use(bodyParser.json());
 
+const router = Router();
 
-app.get('/', async (req, res) => {
+app.get('/', async (_req, res) => {
     let message = 'hi';
     res.send(message);
 });
 
-app.get('/api/', async (req, res) => {
-    let message = 'hi';
-
-    res.json({ message });
+app.get('/api', async (_req, res) => {
+    res.json({ message: 'use /api/v1/' });
 });
 
-app.get('/api/list/all', async (req, res, next) => {
+app.use('/api/v1', router);
+
+router.get('/list/all', async (_req, res, next) => {
     try {
         let response: any = {};
         response['type'] = 'allGroups';
@@ -32,7 +33,7 @@ app.get('/api/list/all', async (req, res, next) => {
     }
 });
 
-app.get('/api/list/:f', async (req, res, next) => {
+router.get('/list/:f', async (req, res, next) => {
     try {
         let { f } = req.params;
         let response: any = {};
@@ -45,7 +46,7 @@ app.get('/api/list/:f', async (req, res, next) => {
     }
 });
 
-app.get('/api/get/:g', async (req, res, next) => {
+router.get('/get/:g', async (req, res, next) => {
     try {
         let { s } = req.query;
         let { g } = req.params;
@@ -70,13 +71,17 @@ app.get('/api/get/:g', async (req, res, next) => {
     }
 });
 
-app.use((error: any, req: any, res: any, next: Function) => {
+router.use((_req, _res, next) => {
+    next(Error('API Method not found'));
+});
+
+app.use((error: any, _req: any, res: any, next: Function) => {
     if (res.headersSent) {
         return next(error);
     }
 
-    console.error(error);
-    
+    // console.error(error);
+
     res.status(500);
     res.json({ error: error.message });
 });
