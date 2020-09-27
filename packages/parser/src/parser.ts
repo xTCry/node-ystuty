@@ -404,7 +404,7 @@ export const parseWeekDay = ({ times, names }: { times: any[]; names: any[] }) =
     return day;
 };
 
-export const parseWeekByCheerio = ($: CheerioStatic) => {
+export const parseWeekByCheerio = ($: cheerio.Root) => {
     let days: IMDay[] = [];
 
     chTableParser($);

@@ -1,3 +1,3 @@
-# YSTUty API Parser
+# YSTUty toolkit
 
 > ...

@@ -1,5 +1,4 @@
-require('dotenv').config();
-
+import 'dotenv/config';
 import API from './api';
 import TTMan from './ttman';
 import './server';
