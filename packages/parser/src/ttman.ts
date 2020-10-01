@@ -14,6 +14,30 @@ export interface ILinks2Facultets {
     links: IFacultyLink[];
 }
 
+// TODO: Переделать
+const retry = async <R>(
+    {
+        fn,
+        condition,
+        fnRetry,
+        num = 2,
+    }: { fn: () => Promise<R>; condition: (res: R) => Promise<boolean>; fnRetry?: () => Promise<R>; num?: number },
+    i = 0
+) => {
+    let result = await fn();
+    if (typeof fnRetry !== 'function') {
+        fnRetry = fn;
+    }
+
+    if (!await condition(result)) {
+        if (i >= num) {
+            return Promise.reject();
+        }
+        result = await retry({ fn: fnRetry, condition, fnRetry, num }, i + 1);
+    }
+    return result;
+};
+
 export class CTimeTableManager {
     api: API;
     FSLinks?: ILinks2Facultets[];
@@ -28,7 +52,10 @@ export class CTimeTableManager {
         }
 
         // Find all list
-        let { data } = await this.api.goc('/WPROG/rasp/raspz.php');
+        let { data } = await retry<{ data: any }>({
+            fn: () => this.api.goc('/WPROG/rasp/raspz.php'),
+            condition: async (res: any) => !!res.data,
+        });
         let linkToFullList = this.getLinkToFullList(data);
 
         let { data: data2 } = await this.api.goc(linkToFullList);
@@ -63,8 +90,18 @@ export class CTimeTableManager {
             return null;
         }
 
-        let { data: data1 } = await this.api.goc(dataLink.link);
-        let tt1 = await this.convertTT(data1, `${name}_sem`);
+        // Очередное извращение
+        // TODO: Переделать
+        let tt1: IWeek[] = [];
+        let { data: data1 } = await retry<{ data: any }>({
+            fn: () => this.api.goc(dataLink!.link),
+            condition: async({ data: data1 }: any) => {
+                tt1 = await this.convertTT(data1, `${name}_sem`);
+                return !!tt1.length;
+            },
+        });
+
+        // let tt1 = await this.convertTT(data1, `${name}_sem`);
         let tt2: IWeek[] = [];
 
         if (dataLink.linkLecture) {

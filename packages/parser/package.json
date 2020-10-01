@@ -1,6 +1,6 @@
 {
   "name": "@ystuty/parser",
-  "version": "1.0.1",
+  "version": "1.0.1-alpha.3",
   "description": "YSTU time table parser",
   "scripts": {
     "start": "ts-node ./src/index.ts",

@@ -95,7 +95,7 @@ export class CCacheMan {
     }
 
     public genName(str: string) {
-        return md5(str.toLowerCase());
+        return `${str.replace(/[^0-9А-яA-z-_]/gi, '').slice(0, 15)}.${md5(str.toLowerCase()).slice(-8)}`;
     }
 
     public get time() {
