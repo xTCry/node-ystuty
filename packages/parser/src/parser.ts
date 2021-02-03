@@ -410,7 +410,6 @@ export const parseWeekByCheerio = ($: cheerio.Root) => {
     chTableParser($);
     let tables = $('table.sortm').toArray();
     for (let table of tables) {
-        // @ts-ignore
         let [times, names] = $(table).parsetable(false, false, true);
         let day = parseWeekDay({ times, names });
 
