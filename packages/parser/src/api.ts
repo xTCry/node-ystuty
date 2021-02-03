@@ -117,8 +117,8 @@ export default class API {
 
         axiosData.params = 'GET' === method ? postData : {};
 
-        let file = `${url}_${method}_${md5(axiosData)}`;
-        let isTimed = await cm.isTimed(file);
+        let file = ['web', `${url}_${method}_${md5(axiosData)}`];
+        let isTimed = await cm.isTimeout(file);
 
         if (isTimed === false && !forceReload) {
             let { data } = await cm.read(file);

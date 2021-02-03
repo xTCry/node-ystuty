@@ -62,7 +62,7 @@ export class CTimeTableManager {
 
         if (data2) {
             this.FSLinks = this.getFSLinks(data2);
-            await cm.update('FSLinks', this.FSLinks);
+            await cm.update(['links', 'FSLinks'], this.FSLinks);
         } else {
             console.error('Failed load FS Links');
         }
@@ -118,12 +118,12 @@ export class CTimeTableManager {
     }
 
     public async setCache(name: string, data: any) {
-        return await cm.update(`${name}_tt`, data, 86400);
+        return await cm.update(['tt', `${name}_tt`], data, 86400);
     }
 
     public async getCache(name: string): Promise<IWeek[]> {
-        let file = `${name}_tt`;
-        let isTimed = await cm.isTimed(file);
+        let file = ['tt', `${name}_tt`];
+        let isTimed = await cm.isTimeout(file);
 
         if (isTimed === false) {
             return await cm.read(file);
