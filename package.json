@@ -1,22 +1,28 @@
 {
     "name": "ystuty-monorepo",
     "private": true,
-    "main": "packages/app/index.js",
+    "main": "packages/app/lib/index.js",
     "author": "xTCry [Vladislav Kh] (https://github.com/xTCry/)",
     "license": "MIT",
     "scripts": {
+        "update:tsconfig": "ts-node scripts/update-package-tsconfig.ts",
+        "typescript:clean": "rm -rf ./packages/*/{lib,*.tsbuildinfo}",
+
         "update:version": "lerna version --no-push",
         "parser:start": "yarn workspace @ystuty/parser start",
         "parser:dev": "yarn workspace @ystuty/parser dev"
     },
     "engines": {
-        "node": ">=12.0.0"
+        "node": ">=14.0.0"
     },
     "workspaces": [
         "packages/*"
     ],
     "devDependencies": {
-        "lerna": "^3.22.1"
+        "@types/node": "^14.14.20",
+        "ts-node": "^9.1.1",
+        "lerna": "^3.22.1",
+        "typescript": "^4.1.3"
     },
     "repository": {
         "type": "git",

@@ -1,0 +1,10 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "xTCry [Vladislav Kh] (https://github.com/xTCry/)",
+  "license": "MIT",
+  "dependencies": {
+    "@ystuty/types": "^1.0.0-alpha.1"
+  }
+}
