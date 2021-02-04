@@ -10,7 +10,8 @@
 
         "update:version": "lerna version --no-push",
         "parser:start": "yarn workspace @ystuty/parser start",
-        "parser:dev": "yarn workspace @ystuty/parser dev"
+        "parser:dev": "yarn workspace @ystuty/parser dev",
+        "types:build": "yarn workspace @ystuty/types build"
     },
     "engines": {
         "node": ">=14.0.0"
