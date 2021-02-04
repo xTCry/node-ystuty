@@ -2,6 +2,7 @@ import { load } from 'cheerio';
 import { IWeek, parseWeekByCheerio, splitToWeeks } from './parser';
 import cm from './cacheman';
 import API from './api';
+import { IWeek } from '@ystuty/types';
 
 export interface IFacultyLink {
     title: string;

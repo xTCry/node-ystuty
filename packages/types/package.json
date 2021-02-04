@@ -1,0 +1,18 @@
+{
+  "name": "@ystuty/types",
+  "version": "1.0.0-alpha.1",
+  "description": "TypeScript definitions for YSTU time table parser",
+  "license": "MIT",
+  "author": "xTCry [Vladislav Kh] (https://github.com/xTCry/)",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xtcry/ystuty.git",
+    "directory": "packages/types"
+  },
+  "scripts": {
+    "build": "tsc --build ./tsconfig.package.json"
+  },
+  "dependencies": {}
+}
