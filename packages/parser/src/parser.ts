@@ -305,7 +305,7 @@ export const splitLessonsDayByWeekNumber = (allDays: IMDay[], weekNumber: number
         }
 
         lessons = lessons.map((l) => {
-            if (l.subInfo && l.subInfo.range.includes(weekNumber)) {
+            if (l?.subInfo?.range?.includes(weekNumber)) {
                 l.auditoryName = l.subInfo.auditoryName;
             }
             return l;
