@@ -21,11 +21,23 @@ app.get('/api', async (_req, res) => {
 
 app.use('/api/v1', router);
 
-router.get('/list/all', async (_req, res, next) => {
+router.get('/list/facultets', async (_req, res, next) => {
+    try {
+        let response: any = {};
+        response['type'] = 'allFacultets';
+        response['data'] = TTMan.allFacultets;
+
+        res.json({ response });
+    } catch (error) {
+        next(error);
+    }
+});
+
+router.get('/list/groups', async (_req, res, next) => {
     try {
         let response: any = {};
         response['type'] = 'allGroups';
-        response['data'] = TTMan.allGroups;
+        response['data'] = TTMan.allGroups_2;
 
         res.json({ response });
     } catch (error) {

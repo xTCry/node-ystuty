@@ -1,5 +1,5 @@
 import { load } from 'cheerio';
-import { IWeek, parseWeekByCheerio, splitToWeeks } from './parser';
+import { parseWeekByCheerio, splitToWeeks } from './parser';
 import cm from './cacheman';
 import API from './api';
 import { IWeek } from '@ystuty/types';
@@ -77,6 +77,28 @@ export class CTimeTableManager {
         return this.FSLinks.reduce((a: IFacultyLink[], f) => [...a, ...f.links], []);
     }
 
+    public get allGroups_2(): any[] {
+        if (!this.FSLinks) {
+            return [];
+        }
+
+        return this.FSLinks.reduce(
+            (a: any[], f) => [...a, ...f.links.map(({ title, ...l }) => ({ name: title, ...l }))],
+            []
+        );
+    }
+
+    public get allFacultets(): { name: string; groups: any[] }[] {
+        if (!this.FSLinks) {
+            return [];
+        }
+
+        return this.FSLinks.map((f) => ({
+            name: f.title,
+            groups: f.links.map(({ title, ...l }) => ({ name: title, ...l })),
+        }));
+    }
+
     public async getTTByName(name: string) {
         let cacheData = await this.getCache(name);
         if (cacheData.length) {
@@ -96,7 +118,7 @@ export class CTimeTableManager {
         let tt1: IWeek[] = [];
         let { data: data1 } = await retry<{ data: any }>({
             fn: () => this.api.goc(dataLink!.link),
-            condition: async({ data: data1 }: any) => {
+            condition: async ({ data: data1 }: any) => {
                 tt1 = await this.convertTT(data1, `${name}_sem`);
                 return !!tt1.length;
             },
