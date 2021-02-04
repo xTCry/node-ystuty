@@ -352,17 +352,50 @@ const setDaysDate = (allDays: IDay[], weekNumber: number, offsetWeek: number = 0
     });
 
 const getWeekNumber = (date: string | number | Date) => {
-    let now = new Date(date);
-    let onejan = new Date(now.getFullYear(), 0, 1);
+    const now = new Date(date);
+    const onejan = new Date(now.getFullYear(), 0, 1);
     return Math.ceil(((now.getTime() - onejan.getTime()) / 86400000 + onejan.getDay() + 1) / 7);
 };
 
+const dateSkipWeek = (skipWeeks: number, _date: Date = new Date()) => {
+    const date = new Date(_date);
+    date.setHours(0);
+    const firstWeekday = date.getDay() || 7;
+    // const monthWeek = Math.floor((date.getDate() + firstWeekday - 2) / 7) + 1;
+
+    if (skipWeeks > 0) {
+        if (firstWeekday > 0) {
+            date.setHours(-24 * (firstWeekday - 1));
+        }
+        date.setHours(24 * 7 * skipWeeks);
+    }
+    // else if (monthWeek == 1 && firstWeekday > 4) {
+    //     date.setHours(24 * (8 - firstWeekday));
+    // }
+
+    return date;
+};
+
+
+const getStartDateOfSemester = (d = new Date) => {
+    const date = new Date(d)
+    const semDate = new Date(date.getFullYear(), (date.getMonth() > 7 ? 9 : 2) - 1, 1);
+    const firstWeekday = semDate.getDay() || 7;
+    if (firstWeekday > 5) {
+        semDate.setHours(24 * (8 - firstWeekday));
+    }
+
+    return dateSkipWeek(
+        semDate.getMonth() > 7 ? 0 : 1,
+        semDate
+    );
+};
+
 export const splitToWeeks = (allDays: IMDay[]): IWeek[] => {
-    let now = new Date();
+    const minWeek = getMinWeekNumber(allDays);
+    const maxWeek = getMaxWeekNumber(allDays);
+    const offsetWeek = getWeekNumber(getStartDateOfSemester()) - 1;
     let weeks: IWeek[] = [];
-    let minWeek = getMinWeekNumber(allDays);
-    let maxWeek = getMaxWeekNumber(allDays);
-    let offsetWeek = getWeekNumber(`${now.getFullYear()}.${now.getMonth() > 7 ? 9 : 2}.03`) - 1;
 
     for (let i = minWeek; i < maxWeek + 1; ++i) {
         let days = splitLessonsDayByWeekNumber(allDays, i);
