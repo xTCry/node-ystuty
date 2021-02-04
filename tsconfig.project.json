@@ -1,0 +1,18 @@
+// File generated automatically, use yarn update:tsconfig for update
+{
+    "files": [],
+    "references": [
+        {
+            "path": "packages/types/tsconfig.package.json"
+        },
+        {
+            "path": "packages/app/tsconfig.package.json"
+        },
+        {
+            "path": "packages/parser/tsconfig.package.json"
+        },
+        {
+            "path": "packages/test-redis/tsconfig.package.json"
+        }
+    ]
+}
