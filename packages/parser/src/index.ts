@@ -13,6 +13,6 @@ const api = new API({
         await api.Init();
         await TTMan.Init(api);
     } catch (error) {
-        console.log('Error', error.message);
+        console.log('Error', error);
     }
 })();

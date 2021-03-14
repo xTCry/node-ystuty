@@ -1,6 +1,6 @@
 # Source: https://raw.githubusercontent.com/github/gitignore/master/Node.gitignore
 
-temp/
+.cache-store*/
 test-redis/
 
 # Logs

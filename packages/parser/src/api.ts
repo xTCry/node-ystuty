@@ -32,7 +32,7 @@ export default class API {
             }
         }
 
-        let response = await this.go('/WPROG/lk/lkstud.php');
+        let response = await this.fetch('/WPROG/lk/lkstud.php');
         let isAuth = !API.IsNeedAuth(response);
 
         await cm.update(COOKIES_FILE, { cookies: { PHPSESSID: this._PHPSESSID } });
@@ -47,6 +47,8 @@ export default class API {
 
     private UpdateCookie(response: AxiosResponse<any>) {
         if (Array.isArray(response.headers['set-cookie'])) {
+            console.log('Updated cookies', response.headers['set-cookie']);
+
             let _PHPSESSID = response.headers['set-cookie'].find((str) => str.includes('PHPSESSID')) as string;
             if (_PHPSESSID) {
                 const [, , PHPSESSID] = _PHPSESSID.match(/(.+)=(.+);/i)!;
@@ -62,7 +64,7 @@ export default class API {
             return false;
         }
 
-        let response = await this.go('/WPROG/auth1.php', 'POST', {
+        let response = await this.fetch('/WPROG/auth1.php', 'POST', {
             login: this.login,
             password: this.password,
         });
@@ -73,7 +75,7 @@ export default class API {
             return false;
         }
 
-        let response2 = await this.go('/WPROG/lk/lkstud.php');
+        let response2 = await this.fetch('/WPROG/lk/lkstud.php');
         let isAuth = !API.IsNeedAuth(response2);
         return isAuth;
     }
@@ -81,22 +83,31 @@ export default class API {
     /**
      * GO with cache
      */
-    public async goc(url: string, _method: Method = 'GET', postData: any = {}, axiosData: any = {}, forceReload: boolean = false): Promise<{
-        data: string;
-        status: number;
-        statusText: string;
-        headers: any;
-        config: AxiosRequestConfig;
-        request?: any;
-    } | {
-        isCache: boolean;
-        data: string;
-    }> {
+    public async goc(
+        url: string,
+        _method: Method = 'GET',
+        postData: any = {},
+        axiosData: any = {},
+        forceReload: boolean = false
+    ): Promise<
+        | {
+              data: string;
+              status: number;
+              statusText: string;
+              headers: any;
+              config: AxiosRequestConfig;
+              request?: any;
+          }
+        | {
+              isCache: boolean;
+              data: string;
+          }
+    > {
         let method = _method.toUpperCase();
 
-        if ((null === axiosData.data || undefined === axiosData.data) && 'GET' !== method) {
-            axiosData.data = postData;
-        }
+        // if ((null === axiosData.data || undefined === axiosData.data) && 'GET' !== method) {
+        //     axiosData.data = postData;
+        // }
 
         if (!axiosData.headers) axiosData.headers = {};
 
@@ -109,9 +120,9 @@ export default class API {
 
         if (this._PHPSESSID) {
             if (axiosData.headers['Cookie']) {
-                axiosData.headers['Cookie'] += `; PHPSESSID=${this._PHPSESSID};`;
+                axiosData.headers['Cookie'] += `; PHPSESSID=${this._PHPSESSID}`;
             } else {
-                axiosData.headers['Cookie'] = `PHPSESSID=${this._PHPSESSID};`;
+                axiosData.headers['Cookie'] = `PHPSESSID=${this._PHPSESSID}`;
             }
         }
 
@@ -130,7 +141,7 @@ export default class API {
             }
         }
 
-        let response = await this.go(url, _method, postData, axiosData);
+        let response = await this.fetch(url, _method, postData, axiosData);
         if (response.data.includes('input type="submit" name="login1"')) {
             let authRes = await this.Auth();
             console.log('Cache authRes', authRes);
@@ -140,7 +151,12 @@ export default class API {
         return response;
     }
 
-    public async go(url: string, _method: Method = 'GET', postData: any = {}, axiosData: any = {}): Promise<{
+    public async fetch(
+        url: string,
+        _method: Method = 'GET',
+        postData: any = {},
+        axiosConfig: AxiosRequestConfig = {}
+    ): Promise<{
         data: string;
         status: number;
         statusText: string;
@@ -150,35 +166,36 @@ export default class API {
     }> {
         let method = _method.toUpperCase();
 
-        if ((null === axiosData.data || void 0 === axiosData.data) && 'GET' !== method) {
-            axiosData.data = postData;
-        }
+        // if ((null === axiosData.data || void 0 === axiosData.data) && 'GET' !== method) {
+        //     axiosData.data = postData;
+        // }
 
-        if (!axiosData.headers) axiosData.headers = {};
+        if (!axiosConfig.headers) axiosConfig.headers = {};
 
         if ('GET' !== method) {
-            axiosData.data = qs.stringify(postData);
-            Object.assign(axiosData.headers, {
+            axiosConfig.data = qs.stringify(postData);
+            Object.assign(axiosConfig.headers, {
                 'Content-Type': 'application/x-www-form-urlencoded',
             });
         }
 
-        if (this._PHPSESSID) {
-            if (axiosData.headers['Cookie']) {
-                axiosData.headers['Cookie'] += `; PHPSESSID=${this._PHPSESSID};`;
+        if (this._PHPSESSID && !axiosConfig.headers['Cookie']?.includes('PHPSESSID=')) {
+            if (axiosConfig.headers['Cookie']) {
+                axiosConfig.headers['Cookie'] += `; PHPSESSID=${this._PHPSESSID};`;
             } else {
-                axiosData.headers['Cookie'] = `PHPSESSID=${this._PHPSESSID};`;
+                axiosConfig.headers['Cookie'] = `PHPSESSID=${this._PHPSESSID};`;
             }
+            console.log('current axiosConfig.headers', axiosConfig.headers);
         }
 
-        axiosData.params = 'GET' === method ? postData : {};
+        axiosConfig.params = 'GET' === method ? postData : {};
 
         try {
-            const response = await this.Xt(`${API_URL}${url}`, _method, axiosData);
+            const response = await this.Xt(`${API_URL}${url}`, _method, axiosConfig);
             return response;
         } catch (e_2) {
             console.error(e_2);
-            return e_2;
+            return e_2 as ReturnType<typeof axios>;
         }
     }
 
@@ -192,6 +209,7 @@ export default class API {
             let data = response.data;
             data = Iconv.decode(data, 'cp1251');
 
+            console.log('response', response.config);
             this.UpdateCookie(response);
 
             return { ...response, data };

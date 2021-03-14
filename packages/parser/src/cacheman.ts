@@ -9,13 +9,9 @@ export type CacheData = {
 };
 
 export class CCacheMan {
-    path: string = './temp';
     cache: { [key: string]: CacheData } = {};
 
-    constructor(path?: string) {
-        if (path) {
-            this.path = path;
-        }
+    constructor(private readonly path = './.cache-store') {
         Fs.ensureDir(this.path).then();
     }
 

@@ -1,5 +1,5 @@
 import chTableParser from 'cheerio-tableparser';
-import { ELessonFlags, EWeekNumber, EWeekParity, IDay, IMDay, IWeek } from '@ystuty/types';
+import { ELessonFlags, EWeekNumber, EWeekParity, IDay, IMDay, IWeek } from './types';
 
 interface IRegExpStr {
     DELIM?: string;
@@ -165,7 +165,7 @@ export const parseWeekDayString = (str: string) => {
         ? parseRange(_range).filter((weekNumber) => parity === EWeekParity.CUSTOM || weekNumber % 2 !== parity - 1)
         : [];
     const lessonName = _lessonName ? _lessonName.trim() : undefined;
-    const isStar = !!_star;
+    const isStream = !!_star;
     const duration = parseInt(_duration) || 2;
 
     const type: ELessonFlags = _types
@@ -200,7 +200,7 @@ export const parseWeekDayString = (str: string) => {
         range,
         lessonName,
         type,
-        isStar,
+        isStream,
         duration,
         isDivision,
         auditoryName,
